@@ -1,0 +1,13 @@
+_target_: src.datamodules.classic_guitar.ClassicGuitarDataModule
+data_dir: ${paths.data_dir}
+train_ratio: 0.9
+valid_ratio: 0.05
+test_player_n: "classic_guitar"
+batch_size: 16
+normalize_cqt: False # Flase or "z_score" or "frequency"
+cache_dataset: False
+num_workers: ${local_env.n_workers}
+dataloader_workers: ${local_env.n_workers}
+pin_memory: False
+persistent_workers: False
+preprocess_on_training_start: True

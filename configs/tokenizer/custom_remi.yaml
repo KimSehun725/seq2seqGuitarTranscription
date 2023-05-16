@@ -1,0 +1,25 @@
+_target_: src.tokenizer.tokenizer.tokenizer_initializer
+tokenizer_type: "customREMI"
+pitch_range: 
+  start: 21
+  end: 109
+beat_resolution: 
+  - start: 0
+    end: 4
+    res: 4
+nb_velocities: 1
+additional_tokens:
+  Chord: False
+  Rest: False
+  Tempo: False
+  Program: False
+  TimeSignature: False
+  nb_tempos: 1
+rest_range: 
+  start: 2
+  end: 8
+tempo_range: 
+  start: 60
+  end: 200
+mask: False
+sos_eos: True

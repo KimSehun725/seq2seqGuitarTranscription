@@ -168,7 +168,6 @@ class TransformerDecoder(nn.Module):
         vocab_size: int,
     ):
         super().__init__()
-        print("!!!")
         decoder_params["vocab_size"] = vocab_size
         self.transformer_decoder = TD(**decoder_params)
         self.n_layer = decoder_params["num_blocks"]

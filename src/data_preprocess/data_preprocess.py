@@ -34,7 +34,6 @@ def process_cqt(
     dataset_name,
     output_dir,
 ):
-
     len_in_sec = librosa.get_duration(y=audio, sr=original_sr)
     len_in_bars = int(round((tempo * len_in_sec) / (4 * 60)))
     n_units = int(
@@ -78,6 +77,7 @@ def process_cqt(
             else len(cqt)
         )
         np.save(cqt_filename, cqt[st:end])
+
 
 def jams_to_midi(jam, track_name, split_unit_in_bars, split_hop_bar_len, output_dir):
     tempo = float(track_name.split("-")[1])
@@ -139,6 +139,7 @@ def jams_to_midi(jam, track_name, split_unit_in_bars, split_hop_bar_len, output_
             output_dir, "guitarset", "midi", f"{track_name}_0{unit_n}.mid"
         )
         split_midi_list[unit_n].write(midi_filename)
+
 
 def split_midi(
     midi,
@@ -232,9 +233,7 @@ def guitarset_preprocess(args) -> None:
     track_name = os.path.split(audio_path)[1][:-8]
     tempo = float(track_name.split("-")[1])
     jams_data = jams.load(
-        os.path.join(
-            cfg.data_dir, "guitarset", "annotation", "jams", f"{track_name}.jams"
-        )
+        os.path.join(cfg.data_dir, "guitarset", "annotation", f"{track_name}.jams")
     )
 
     jams_to_midi(

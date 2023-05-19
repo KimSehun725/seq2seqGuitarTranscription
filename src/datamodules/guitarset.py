@@ -13,7 +13,7 @@ from miditok import MIDITokenizer
 from miditoolkit import MidiFile
 from src.data_preprocess.data_preprocess import guitarset_preprocess
 from shutil import rmtree
-from src.datamodules.components import  CustomDataset, CustomPadCollate
+from src.datamodules.components import CustomDataset, CustomPadCollate
 
 
 class GuitarsetDataModule(LightningDataModule):
@@ -27,7 +27,6 @@ class GuitarsetDataModule(LightningDataModule):
         train_val_split_ratio: ratio for splitting train/valid in dev data
         test_player_n: test player number for testing
         batch_size: batch size
-        normalize_cqt: whether to normalize the cqt 
         cache_dataset: whether to cache the whole dataset during first epoch
             might not work well with multiple dataloader workers
         num_workers: number of workers for parallel data preprocessing
@@ -36,6 +35,7 @@ class GuitarsetDataModule(LightningDataModule):
         persistent_workers: whether to make the workers persistent
         preprocess_on_training_start: if set to False, it will bypass the preprocessing and use the existing preprocessed data
     """
+
     def __init__(
         self,
         data_preprocess_cfg: any,
@@ -45,7 +45,6 @@ class GuitarsetDataModule(LightningDataModule):
         train_val_split_ratio: float = 0.9,
         test_player_n: int = 5,
         batch_size: int = 16,
-        normalize_cqt: bool = False,
         cache_dataset: bool = False,
         num_workers: int = 10,
         dataloader_workers: int = 5,
@@ -63,9 +62,10 @@ class GuitarsetDataModule(LightningDataModule):
         )
 
     def prepare_data(self):
-        """Make dirs, preprocess and split the dataset
-        """
-        output_dir = os.path.join(self.hparams.data_preprocess_cfg.output_dir, "guitarset")
+        """Make dirs, preprocess and split the dataset"""
+        output_dir = os.path.join(
+            self.hparams.data_preprocess_cfg.output_dir, "guitarset"
+        )
         cqt_dir = os.path.join(
             self.hparams.data_preprocess_cfg.output_dir, "guitarset", "cqt"
         )
@@ -122,34 +122,29 @@ class GuitarsetDataModule(LightningDataModule):
             if dataname.startswith(f"0{self.hparams.test_player_n}_")
         ]
 
-    def setup(self):
-        """Initialize train, validation and test dataset
-        """
+    def setup(self, stage=None):
+        """Initialize train, validation and test dataset"""
         self.data_train = CustomDataset(
             self.train_data_list,
             self.hparams.data_preprocess_cfg.output_dir + "guitarset",
             self.hparams.tokenizer,
-            self.hparams.mode,
             self.hparams.cache_dataset,
         )
         self.data_val = CustomDataset(
             self.val_data_list,
             self.hparams.data_preprocess_cfg.output_dir + "guitarset",
             self.hparams.tokenizer,
-            self.hparams.mode,
             self.hparams.cache_dataset,
         )
         self.data_test = CustomDataset(
             self.test_data_list,
             self.hparams.data_preprocess_cfg.output_dir + "guitarset",
             self.hparams.tokenizer,
-            self.hparams.mode,
             self.hparams.cache_dataset,
         )
 
     def train_dataloader(self):
-        """Initialize the train dataloader
-        """
+        """Initialize the train dataloader"""
         return DataLoader(
             dataset=self.data_train,
             batch_size=self.hparams.batch_size,
@@ -160,8 +155,7 @@ class GuitarsetDataModule(LightningDataModule):
         )
 
     def val_dataloader(self):
-        """Initialize the validataion dataloader
-        """
+        """Initialize the validataion dataloader"""
         return DataLoader(
             dataset=self.data_val,
             batch_size=self.hparams.batch_size,
@@ -172,8 +166,7 @@ class GuitarsetDataModule(LightningDataModule):
         )
 
     def test_dataloader(self):
-        """Initialize the test dataloader
-        """
+        """Initialize the test dataloader"""
         return DataLoader(
             dataset=self.data_test,
             batch_size=self.hparams.batch_size,

@@ -28,10 +28,8 @@ def task_wrapper(task_func: Callable) -> Callable:
     """
 
     def wrap(cfg: DictConfig):
-
         # execute the task
         try:
-
             # apply extra utilities
             extras(cfg)
 
@@ -39,7 +37,6 @@ def task_wrapper(task_func: Callable) -> Callable:
 
         # things to do if exception occurs
         except Exception as ex:
-
             # save exception to `.log` file
             log.exception("")
 
@@ -49,7 +46,6 @@ def task_wrapper(task_func: Callable) -> Callable:
 
         # things to always do after either success or exception
         finally:
-
             # display output dir path in terminal
             log.info(f"Output dir: {cfg.paths.output_dir}")
 
@@ -217,15 +213,3 @@ def save_file(path: str, content: str) -> None:
 def z_score_normalize(x: any) -> any:
     mean, std = x.mean(), x.std()
     return (x - mean) / std
-
-
-def miyashita_normalize(x: any) -> any:
-    std = x.square().mean().sqrt()
-    return x / std
-
-
-def frequency_bin_normalize(x: any) -> any:
-    mean, std = torch.mean(x, 0), torch.std(x, 0)
-    for f_bin in range(x.shape[1]):
-        x[:, f_bin] = (x[:, f_bin] - mean[f_bin]) / std[f_bin]
-    return x

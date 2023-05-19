@@ -1,4 +1,3 @@
-
 from pytorch_lightning import LightningModule
 from typing import List, Tuple, Dict, Optional, Union
 from pathlib import Path
@@ -20,6 +19,7 @@ from miditok.constants import (
 )
 import hydra
 from omegaconf import DictConfig
+
 
 class tokenizer_initializer(LightningModule):
     def __init__(
@@ -54,7 +54,7 @@ class tokenizer_initializer(LightningModule):
                 mask=mask,
                 sos_eos=sos_eos,
             )
-        else: 
+        else:
             self.tokenizer = getattr(miditok, tokenizer_type)(
                 pitch_range,
                 beat_res,
@@ -63,7 +63,7 @@ class tokenizer_initializer(LightningModule):
                 mask=mask,
                 sos_eos=sos_eos,
             )
-            
+
     def generate(self):
         """Returns initialized tokenizer, vocab and vocab size.
 
@@ -75,6 +75,7 @@ class tokenizer_initializer(LightningModule):
         self.vocab = self.tokenizer._create_vocabulary()
         self.vocab_size = len(self.vocab._event_to_token)
         return self.tokenizer, self.vocab, self.vocab_size
+
 
 class CustomREMI(MIDITokenizer):
     def __init__(
@@ -212,7 +213,7 @@ class CustomREMI(MIDITokenizer):
                     ):
                         # Will loop over incoming tempo changes
                         for tempo_change in self.current_midi_metadata["tempo_changes"][
-                            current_tempo_idx + 1:
+                            current_tempo_idx + 1 :
                         ]:
                             # If this tempo change happened before the current moment
                             if tempo_change.time <= note.start:
@@ -320,7 +321,7 @@ class CustomREMI(MIDITokenizer):
                     tempo_changes.append(TempoChange(tempo, current_tick))
             elif event.type == "Pitch":
                 try:
-                    if (events[ei + 1].type == "Duration"):
+                    if events[ei + 1].type == "Duration":
                         pitch = int(events[ei].value)
                         duration = self._token_duration_to_ticks(
                             events[ei + 1].value, time_division
@@ -365,7 +366,7 @@ class CustomREMI(MIDITokenizer):
         vocab.add_event(f"Pitch_{i}" for i in self.pitch_range)
 
         # VELOCITY
-        #vocab.add_event(f"Velocity_{i}" for i in self.velocities)
+        # vocab.add_event(f"Velocity_{i}" for i in self.velocities)
 
         # DURATION
         vocab.add_event(
@@ -461,7 +462,12 @@ class CustomREMI(MIDITokenizer):
         else:  # for other types of events, the order should be handle when inserting the events in the sequence
             return 4
 
-@hydra.main(version_base="1.3", config_path="../../configs/tokenizer", config_name="tokenizer.yaml")
+
+@hydra.main(
+    version_base="1.3",
+    config_path="../../configs/tokenizer",
+    config_name="tokenizer.yaml",
+)
 def main(cfg: DictConfig) -> Optional[float]:
     tokenizer_type = cfg.tokenizer_type
     pitch_range = cfg.pitch_range
@@ -475,16 +481,23 @@ def main(cfg: DictConfig) -> Optional[float]:
     print(additional_tokens)
     print(rest_range)
     initializer = tokenizer_initializer(
-        tokenizer_type = "customREMI",
-        pitch_range = {"start": 21, "end": 109},
-        beat_resolution = [{"start": 0, "end": 4, "res": 4}],
-        nb_velocities = 1,
-        additional_tokens = {"Chord": False, "Rest": True, "Tempo": False, "Program": False, "TimeSignature": False, "nb_tempos": 1},
-        rest_range = {"start": 2, "end": 8},
-        tempo_range = {"start": 60, "end": 200},
-        mask = False,
-        sos_eos = True
-        )
+        tokenizer_type="customREMI",
+        pitch_range={"start": 21, "end": 109},
+        beat_resolution=[{"start": 0, "end": 4, "res": 4}],
+        nb_velocities=1,
+        additional_tokens={
+            "Chord": False,
+            "Rest": True,
+            "Tempo": False,
+            "Program": False,
+            "TimeSignature": False,
+            "nb_tempos": 1,
+        },
+        rest_range={"start": 2, "end": 8},
+        tempo_range={"start": 60, "end": 200},
+        mask=False,
+        sos_eos=True,
+    )
     tokenizer, vocab, vocab_size = initializer.generate()
 
 

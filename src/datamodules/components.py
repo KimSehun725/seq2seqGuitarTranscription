@@ -6,6 +6,7 @@ from torch.utils.data import Dataset
 from miditoolkit import MidiFile
 import sys
 
+
 class CustomPadCollate:
     def __init__(self, vocab_size):
         self.vocab_size = vocab_size
@@ -64,8 +65,7 @@ class CustomDataset(Dataset):
                 self.caches += [None]
 
     def check_valid(self, track_name_list):
-        """Filter out empty MIDI files and MIDI files that have too long sequence length when converted into tokens.
-        """
+        """Filter out empty MIDI files and MIDI files that have too long sequence length when converted into tokens."""
         with Progress() as p:
             task = p.add_task(
                 "Dataset: Checking validity...", total=len(track_name_list)
@@ -79,7 +79,9 @@ class CustomDataset(Dataset):
                     print(f"Empty MIDI file: {track_name}. removing from the dataset")
                     invalid_idx_list += [idx]
                 elif len(cqt) <= len(tokens[0]):
-                    print(f"Token length > CQT length: {track_name}. removing from the dataset")
+                    print(
+                        f"Token length > CQT length: {track_name}. removing from the dataset"
+                    )
                     invalid_idx_list += [idx]
                 p.update(task, advance=1)
 
@@ -87,7 +89,6 @@ class CustomDataset(Dataset):
                 invalid_idx_list.reverse()
                 for invalid_idx in invalid_idx_list:
                     del self.track_name_list[invalid_idx]
-        print(f"Size of self.track_name_list: " + str(sys.getsizeof(self.track_name_list)) + "bytes")
 
     def __len__(self):
         return len(self.track_name_list)

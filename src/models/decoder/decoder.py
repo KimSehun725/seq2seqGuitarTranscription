@@ -11,10 +11,10 @@ class GreedyCTCDecoder:
     def __call__(self, preds_logprob, lengths):
         """
         Given a sequence of log probability over labels, get the best path.
-        
+
         Args:
             preds_logprob : Logit tensors. Shape [batch_size, num_seq, num_label].
-            lengths : Length of the sequences. Shape [batch_size] 
+            lengths : Length of the sequences. Shape [batch_size]
 
         Returns:
             List[str]: The resulting transcript
@@ -42,7 +42,7 @@ class GreedyAutoregressiveDecoder:
 
         Args:
             memory : The encoder output. Shape [batch_size, input_length, dim]
-            ilens : Length of the input sequences. Shape [batch_size] 
+            ilens : Length of the input sequences. Shape [batch_size]
             transformer_decoder : Transformer decoder object.
 
         Returns:
@@ -84,23 +84,25 @@ class BeamSearchAutoregressiveDecoder:
         self.beam_size = beam_size
         self.vocab_size = vocab_size
         self.alpha = 0.7
-        
+
     def __call__(self, memory, ilens, decoder):
         """
         Performs beam search decoding with a transformer decoder.
-        
+
         Args:
             memory : The encoder output.
             memory : The encoder output. Shape [batch_size, input_length, dim]
-            ilens : Length of the input sequences. Shape [batch_size] 
-        
+            ilens : Length of the input sequences. Shape [batch_size]
+
         Returns:
             List[str]: The resulting transcript
         """
         device = memory.device
-        tgt = torch.tensor([self.sos_idx], dtype=torch.long, device=device)  # starting token
+        tgt = torch.tensor(
+            [self.sos_idx], dtype=torch.long, device=device
+        )  # starting token
         memory_mask = None
-        
+
         # Initialize the beam
         beam = [(tgt, 0)]
         for i in range(self.max_len):
@@ -110,8 +112,13 @@ class BeamSearchAutoregressiveDecoder:
                     # End of sequence
                     candidates.append((seq, score))
                     continue
-                
-                logits = decoder(memory, ilens, seq.unsqueeze(0), torch.tensor([len(seq)], dtype=torch.long, device=device))
+
+                logits = decoder(
+                    memory,
+                    ilens,
+                    seq.unsqueeze(0),
+                    torch.tensor([len(seq)], dtype=torch.long, device=device),
+                )
                 prob = F.softmax(logits[:, -1, :], dim=-1)
                 log_prob = torch.log(prob)
                 scores, indices = torch.topk(log_prob, self.beam_size, dim=-1)
@@ -119,10 +126,10 @@ class BeamSearchAutoregressiveDecoder:
                     candidate_seq = torch.cat([seq, indices[0, j].view(1)])
                     candidate_score = score + scores[0, j]
                     candidates.append((candidate_seq, candidate_score))
-            
+
             # Sort candidates by score
             candidates.sort(key=lambda x: x[1], reverse=True)
-            
+
             # Prune the beam
             beam = []
             for j in range(min(len(candidates), self.beam_size)):
@@ -132,9 +139,9 @@ class BeamSearchAutoregressiveDecoder:
                     beam.append((seq, score))
                 else:
                     beam.append((seq, score - self.alpha * (len(seq) - 1)))
-        
+
         # Return the best sequence
         best_seq, best_score = beam[0]
         best_seq = [best_seq.tolist()[1:]]
-        
+
         return best_seq

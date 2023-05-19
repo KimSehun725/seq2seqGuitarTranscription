@@ -9,10 +9,12 @@ class CTCLoss(torch.nn.Module):
         reduction: str = "mean",
     ):
         super().__init__()
-        self.ctc = torch.nn.CTCLoss(blank=blank, reduction=reduction, zero_infinity=True)
+        self.ctc = torch.nn.CTCLoss(
+            blank=blank, reduction=reduction, zero_infinity=True
+        )
 
     def forward(self, preds_logprob, tokens_gt, cqt_lens, token_lens_gt):
-        #print(f"{preds_logprob.shape=}, {tokens_gt.shape=}")
+        # print(f"{preds_logprob.shape=}, {tokens_gt.shape=}")
         preds_logprob = mask_by_length(preds_logprob, cqt_lens)
         preds_logprob = torch.swapaxes(
             preds_logprob, 0, 1
@@ -59,7 +61,9 @@ class CustomLoss(torch.nn.Module):
         token_mask = make_non_pad_mask(token_lens_gt, length_dim=1).to(
             token_preds_logits.device
         )
-        ctc_loss = self.ctc_loss_func(ctc_preds_logprob, padded_tokens_gt, frame_lens_gt, token_lens_gt)
+        ctc_loss = self.ctc_loss_func(
+            ctc_preds_logprob, padded_tokens_gt, frame_lens_gt, token_lens_gt
+        )
         ce_loss = self.ce_loss_func(token_preds_logits, padded_tokens_gt, token_lens_gt)
 
         loss = self.alpha * ctc_loss + ce_loss

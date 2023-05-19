@@ -4,6 +4,7 @@ import miditok
 import os
 import pretty_midi
 from matplotlib import pyplot as plt
+import librosa
 import librosa.display
 import matplotlib.patches as mpatches
 from matplotlib.colors import LogNorm
@@ -106,7 +107,8 @@ class HybridCTCLitModule(LightningModule):
 
     def model_inference(self, padded_cqt, cqt_lens, tempos):
         ctc_preds_tokens, tr_preds_tokens = self.network.inference(
-            padded_cqt, cqt_lens, tempos)
+            padded_cqt, cqt_lens, tempos
+        )
         return ctc_preds_tokens, tr_preds_tokens
 
     def training_step(self, batch, batch_idx):
@@ -120,7 +122,6 @@ class HybridCTCLitModule(LightningModule):
 
         return {"loss": loss}
 
-
     def validation_step(self, batch, batch_idx):
         loss, ctc_preds_logprob, tr_preds_logits = self.model_step(batch)
 
@@ -129,7 +130,9 @@ class HybridCTCLitModule(LightningModule):
         self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=True)
 
         # ctc tokens
-        preds_ctc_tokens = self.network.ctc_decoder(ctc_preds_logprob, batch["cqt_lens"])
+        preds_ctc_tokens = self.network.ctc_decoder(
+            ctc_preds_logprob, batch["cqt_lens"]
+        )
 
         # tokens
         tr_preds_tokens = torch.argmax(tr_preds_logits, dim=2)
@@ -141,10 +144,12 @@ class HybridCTCLitModule(LightningModule):
             batch["padded_tokens_gt"][i, : batch["token_lens_gt"][i]].tolist()
             for i in range(len(batch["token_lens_gt"]))
         ]
-        
+
         self.val_ctc_ter(self.ter(preds_ctc_tokens, gt_tokens))
         self.val_ter(self.ter(tr_preds_tokens, gt_tokens))
-        self.log("val/ctc_ter", self.val_ctc_ter, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "val/ctc_ter", self.val_ctc_ter, on_step=False, on_epoch=True, prog_bar=True
+        )
         self.log("val/ter", self.val_ter, on_step=False, on_epoch=True, prog_bar=True)
 
         return {"loss": loss}
@@ -228,10 +233,19 @@ class HybridCTCLitModule(LightningModule):
                 tr_preds_pianoroll = zeros
 
             # plot
-            self.plot_output(gt_pianoroll, ctc_preds_pianoroll, tr_preds_pianoroll, track_name_list[i])
+            self.plot_output(
+                gt_pianoroll,
+                ctc_preds_pianoroll,
+                tr_preds_pianoroll,
+                track_name_list[i],
+            )
 
-            ctc_p, ctc_r, ctc_f = self.get_precision_recall_f1(ctc_preds_pianoroll, gt_pianoroll)
-            tr_p, tr_r, tr_f = self.get_precision_recall_f1(tr_preds_pianoroll, gt_pianoroll)
+            ctc_p, ctc_r, ctc_f = self.get_precision_recall_f1(
+                ctc_preds_pianoroll, gt_pianoroll
+            )
+            tr_p, tr_r, tr_f = self.get_precision_recall_f1(
+                tr_preds_pianoroll, gt_pianoroll
+            )
 
             ctc_precision[i] = ctc_p
             ctc_recall[i] = ctc_r
@@ -292,12 +306,19 @@ class HybridCTCLitModule(LightningModule):
             on_epoch=True,
             prog_bar=True,
         )
-        self.log("test/ctc_ter", self.test_ctc_ter, on_step=False, on_epoch=True, prog_bar=True)
-        self.log("test/ter", self.test_tr_ter, on_step=False, on_epoch=True, prog_bar=True)
+        self.log(
+            "test/ctc_ter",
+            self.test_ctc_ter,
+            on_step=False,
+            on_epoch=True,
+            prog_bar=True,
+        )
+        self.log(
+            "test/tr_ter", self.test_tr_ter, on_step=False, on_epoch=True, prog_bar=True
+        )
 
     def configure_optimizers(self):
-        """Setting the optimizer for training.
-        """
+        """Setting the optimizer for training."""
         optimizer = self.hparams.optimizer(
             filter(lambda p: p.requires_grad, self.parameters())
         )
@@ -370,7 +391,9 @@ class HybridCTCLitModule(LightningModule):
         f1 = 2 * precision * recall / (precision + recall + 1e-7)
         return precision, recall, f1
 
-    def plot_output(self, gt_pianoroll, ctc_preds_pianoroll, tr_preds_pianoroll, track_name):
+    def plot_output(
+        self, gt_pianoroll, ctc_preds_pianoroll, tr_preds_pianoroll, track_name
+    ):
         """Function for plotting the predictions.
 
         Args:
@@ -383,30 +406,33 @@ class HybridCTCLitModule(LightningModule):
         TP_patch = mpatches.Patch(color="white", label="TP")
         FP_patch = mpatches.Patch(color="yellow", label="FP")
         FN_patch = mpatches.Patch(color="red", label="FN")
-        plt.subplot(2, 1, 1)  
+
+        plt.subplot(2, 1, 1)
         plt.title("CTC")
         fused = (gt_pianoroll * 0.4 + ctc_preds_pianoroll).cpu()
         sns.heatmap(
-            fused[:,40:76].T, cmap="hot", cbar=False, rasterized=False
+            fused[:, 40:76].T, cmap="hot", cbar=False, rasterized=False
         ).invert_yaxis()
-        plt.legend(handles=[TP_patch, FP_patch, FN_patch], loc='upper right')
-        plt.tick_params(left = False, right = False, labelleft = False,
-            labelbottom = False, bottom = False)
+        plt.legend(handles=[TP_patch, FP_patch, FN_patch], loc="upper right")
+        plt.tick_params(
+            left=False, right=False, labelleft=False, labelbottom=False, bottom=False
+        )
         for n_note in range(4 * 16):
             if n_note % 16 == 0:
                 plt.axvline(len(gt_pianoroll) * n_note / 64, color="white", lw=1)
             else:
                 plt.axvline(len(gt_pianoroll) * n_note / 64, color="white", lw=0.2)
 
-        plt.subplot(2, 1, 2)  
+        plt.subplot(2, 1, 2)
         plt.title("Transformer")
         fused = (gt_pianoroll * 0.4 + tr_preds_pianoroll).cpu()
         sns.heatmap(
-            fused[:,40:76].T, cmap="hot", cbar=False, rasterized=False
+            fused[:, 40:76].T, cmap="hot", cbar=False, rasterized=False
         ).invert_yaxis()
-        plt.legend(handles=[TP_patch, FP_patch, FN_patch], loc='upper right')
-        plt.tick_params(left = False, right = False, labelleft = False,
-            labelbottom = False, bottom = False)            
+        plt.legend(handles=[TP_patch, FP_patch, FN_patch], loc="upper right")
+        plt.tick_params(
+            left=False, right=False, labelleft=False, labelbottom=False, bottom=False
+        )
         for n_note in range(4 * 16):
             if n_note % 16 == 0:
                 plt.axvline(len(gt_pianoroll) * n_note / 64, color="white", lw=1)
@@ -424,38 +450,44 @@ class HybridCTCLitModule(LightningModule):
         Args:
             track_name_list: List of track names.
         """
-        plot_counter = 1
-        for n_layer in range(4):
-            attention_map = self.network.transformer_decoder.transformer_decoder.decoders._modules[f'{n_layer}']._modules['src_attn'].attn.cpu()
-            print(attention_map.shape)
-            for head in range(4):
-                plt.subplot(4, 4, plot_counter, aspect='equal')
-                cmap = sns.color_palette("ch:s=-.2,r=.6", as_cmap=True)
-                plt.imshow(attention_map[0, head], cmap=cmap, norm=LogNorm(vmin=1e-3),  aspect='auto')
-                plt.gcf().set_size_inches(12, 12)
-                plt.axis('off')
-                plt.tick_params(left = False, right = False, labelleft = False,
-                labelbottom = False, bottom = False)  
-                plt.tight_layout()  
-                plot_counter += 1
-        plt.savefig(f"attn_map/pt_only_epoch_{self.current_epoch}_{track_name_list[0]}_src_attn.png", dpi=200)
-        plt.close('all')
+        n_layer = self.model.transformer_decoder.n_layer
+        n_head = self.model.transformer_decoder.n_head
 
         plot_counter = 1
-        for n_layer in range(6):
-            attention_map = self.network.conformer.conformer.encoders._modules[f'{n_layer}']._modules['self_attn'].attn.cpu()
-            for head in range(8):
-                plt.subplot(8, 6, plot_counter, aspect='equal')
+        for layer_n in range(n_layer):
+            attention_map = (
+                self.network.transformer_decoder.transformer_decoder.decoders._modules[
+                    f"{layer_n}"
+                ]
+                ._modules["src_attn"]
+                .attn.cpu()
+            )
+            print(attention_map.shape)
+            for head_n in range(n_head):
+                plt.subplot(n_head, n_layer, plot_counter, aspect="equal")
                 cmap = sns.color_palette("ch:s=-.2,r=.6", as_cmap=True)
-                plt.imshow(attention_map[0, head], cmap=cmap, norm=LogNorm(vmin=1e-3),  aspect='auto')
-                plt.gcf().set_size_inches(18, 24)
-                plt.axis('off')
-                plt.tick_params(left = False, right = False, labelleft = False,
-                labelbottom = False, bottom = False)  
-                plt.tight_layout()  
+                plt.imshow(
+                    attention_map[0, head_n],
+                    cmap=cmap,
+                    norm=LogNorm(vmin=1e-3),
+                    aspect="auto",
+                )
+                plt.gcf().set_size_inches(12, 12)
+                plt.axis("off")
+                plt.tick_params(
+                    left=False,
+                    right=False,
+                    labelleft=False,
+                    labelbottom=False,
+                    bottom=False,
+                )
+                plt.tight_layout()
                 plot_counter += 1
-        plt.savefig(f"attn_map/pt_only_epoch_{self.current_epoch}_{track_name_list[0]}_conf_attn.png", dpi=200)
-        plt.close('all')
+        plt.savefig(
+            f"{self.figs_output_dir}/epoch_{self.current_epoch}_{track_name_list[0]}_src_attn.png",
+            dpi=200,
+        )
+        plt.close("all")
 
 
 if __name__ == "__main__":
@@ -464,7 +496,5 @@ if __name__ == "__main__":
     import pyrootutils
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    cfg = omegaconf.OmegaConf.load(
-        root / "configs" / "model" / "lit_hybrid_ctc.yaml"
-    )
+    cfg = omegaconf.OmegaConf.load(root / "configs" / "model" / "lit_hybrid_ctc.yaml")
     _ = hydra.utils.instantiate(cfg)

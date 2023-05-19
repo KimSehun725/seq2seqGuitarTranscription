@@ -17,7 +17,8 @@ from src.data_preprocess.data_preprocess import (
     check_midi_validity,
 )
 from shutil import rmtree
-from src.datamodules.components import  CustomDataset, CustomPadCollate
+from src.datamodules.components import CustomDataset, CustomPadCollate
+
 
 class ClassicGuitarDataModule(LightningDataModule):
     """Custom datamodule for classic guitar dataset.
@@ -31,7 +32,6 @@ class ClassicGuitarDataModule(LightningDataModule):
         valid_ratio: ratio of validataion data from the whole dataset
         test_player_n: dummy argument. it should always be "classic_guitar"
         batch_size: batch size
-        normalize_cqt: whether to normalize the cqt 
         cache_dataset: whether to cache the whole dataset during first epoch
             might not work well with multiple dataloader workers
         num_workers: number of workers for parallel data preprocessing
@@ -40,6 +40,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         persistent_workers: whether to make the workers persistent
         preprocess_on_training_start: if set to False, it will bypass the preprocessing and use the existing preprocessed data
     """
+
     def __init__(
         self,
         data_preprocess_cfg: any,
@@ -50,7 +51,6 @@ class ClassicGuitarDataModule(LightningDataModule):
         valid_ratio: float = 0.05,
         test_player_n="classic_guitar",
         batch_size: int = 16,
-        normalize_cqt: bool = False,
         cache_dataset: bool = False,
         num_workers: int = 10,
         dataloader_workers: int = 5,
@@ -80,8 +80,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         self.midi_filename_list = midifiles_filename_list + classclef_filename_list
 
     def prepare_data(self):
-        """Make dirs, preprocess and split the dataset
-        """
+        """Make dirs, preprocess and split the dataset"""
         output_dir = os.path.join(
             self.hparams.data_preprocess_cfg.output_dir, "classic_guitar"
         )
@@ -163,8 +162,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         ]
 
     def setup(self, stage=None):
-        """Initialize train, validation and test dataset
-        """
+        """Initialize train, validation and test dataset"""
         self.data_train = CustomDataset(
             self.train_data_list,
             self.hparams.data_preprocess_cfg.output_dir + "classic_guitar",
@@ -185,8 +183,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         )
 
     def train_dataloader(self):
-        """Initialize the train dataloader
-        """
+        """Initialize the train dataloader"""
         return DataLoader(
             dataset=self.data_train,
             batch_size=self.hparams.batch_size,
@@ -197,8 +194,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         )
 
     def val_dataloader(self):
-        """Initialize the validataion dataloader
-        """
+        """Initialize the validataion dataloader"""
         return DataLoader(
             dataset=self.data_val,
             batch_size=self.hparams.batch_size,
@@ -209,8 +205,7 @@ class ClassicGuitarDataModule(LightningDataModule):
         )
 
     def test_dataloader(self):
-        """Initialize the test dataloader
-        """
+        """Initialize the test dataloader"""
         return DataLoader(
             dataset=self.data_test,
             batch_size=self.hparams.batch_size,
@@ -239,6 +234,8 @@ if __name__ == "__main__":
     import pyrootutils
 
     root = pyrootutils.setup_root(__file__, pythonpath=True)
-    cfg = omegaconf.OmegaConf.load(root / "configs" / "datamodule" / "classic_guitar.yaml")
+    cfg = omegaconf.OmegaConf.load(
+        root / "configs" / "datamodule" / "classic_guitar.yaml"
+    )
     cfg.data_dir = str(root / "data")
     _ = hydra.utils.instantiate(cfg)

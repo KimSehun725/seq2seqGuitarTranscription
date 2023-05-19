@@ -18,6 +18,7 @@ from typing import List, Optional, Tuple
 
 log = utils.get_pylogger(__name__)
 
+
 @utils.task_wrapper
 def train(cfg: DictConfig) -> Tuple[dict, dict]:
     """Trains the model. Can additionally evaluate on a testset.
@@ -39,7 +40,7 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     log.info(f"Instantiating tokenizer <{cfg.tokenizer._target_}>")
     tokenizer_initializer: MIDITokenizer = hydra.utils.instantiate(cfg.tokenizer)
     tokenizer, vocab, vocab_size = tokenizer_initializer.generate()
-    
+
     log.info(f"Instantiating datamodule <{cfg.datamodule._target_}>")
     datamodule: LightningDataModule = hydra.utils.instantiate(
         cfg.datamodule,
@@ -61,7 +62,8 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
 
     log.info(f"Instantiating trainer <{cfg.trainer._target_}>")
     trainer: Trainer = hydra.utils.instantiate(
-        cfg.trainer, callbacks=callbacks, logger=logger)
+        cfg.trainer, callbacks=callbacks, logger=logger
+    )
 
     object_dict = {
         "cfg": cfg,
@@ -85,10 +87,13 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
 
     if cfg.get("test"):
         log.info("Starting testing!")
-        ckpt_path = trainer.checkpoint_callback.best_model_path
-        if ckpt_path == "":
-            log.warning("Best ckpt not found! Using current weights for testing...")
-            ckpt_path = None
+        if cfg.get("train"):
+            ckpt_path = trainer.checkpoint_callback.best_model_path
+            if ckpt_path == "":
+                log.warning("Best ckpt not found! Using current weights for testing...")
+                ckpt_path = None
+        else:
+            ckpt_path = cfg.get("ckpt_path")
         trainer.test(model=model, datamodule=datamodule, ckpt_path=ckpt_path)
         log.info(f"Best ckpt path: {ckpt_path}")
 
@@ -102,7 +107,6 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
 
 @hydra.main(version_base="1.3", config_path="../configs", config_name="train.yaml")
 def main(cfg: DictConfig) -> Optional[float]:
-
     # train the model
     metric_dict, _ = train(cfg)
 

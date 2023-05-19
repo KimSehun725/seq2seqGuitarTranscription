@@ -3,7 +3,12 @@ import torch.nn as nn
 from espnet2.asr.encoder.conformer_encoder import ConformerEncoder
 from espnet2.asr.decoder.transformer_decoder import TransformerDecoder as TD
 from espnet.nets.pytorch_backend.nets_utils import make_non_pad_mask
-from src.models.decoder.decoder import GreedyCTCDecoder, GreedyAutoregressiveDecoder, BeamSearchAutoregressiveDecoder
+from src.models.decoder.decoder import (
+    GreedyCTCDecoder,
+    GreedyAutoregressiveDecoder,
+    BeamSearchAutoregressiveDecoder,
+)
+
 
 class ConvStack(nn.Module):
     """Class of Convolution stack module.
@@ -22,6 +27,7 @@ class ConvStack(nn.Module):
         conv_dropout: Dropout rate after each convolution layer.
         fc_dropout: Dropout rate after the final FC layer.
     """
+
     def __init__(
         self,
         input_size: int,
@@ -100,6 +106,7 @@ class Conformer(nn.Module):
     Args:
         conformer_params: Dictionary of Conformer hyperparameters.
     """
+
     def __init__(
         self,
         conformer_params: dict,
@@ -119,6 +126,7 @@ class Conformer(nn.Module):
         memory, _, _ = self.conformer(x, ilens)
         return memory
 
+
 class CTCOutputLayer(nn.Module):
     """Class of the CTC output layer.
 
@@ -127,6 +135,7 @@ class CTCOutputLayer(nn.Module):
         input_size: The output size (vocab size).
         dropout: Dropout rate before the linear layer.
     """
+
     def __init__(
         self,
         input_size: int,
@@ -144,6 +153,7 @@ class CTCOutputLayer(nn.Module):
         y = self.output_layer(x)
         return y
 
+
 class TransformerDecoder(nn.Module):
     """Class of the Transformer decoder module.
 
@@ -151,6 +161,7 @@ class TransformerDecoder(nn.Module):
         decoder_params: Dictionary of the Transformer decoder hyperparameters.
         vocab_size: The vocabulary size.
     """
+
     def __init__(
         self,
         decoder_params: dict,
@@ -160,11 +171,14 @@ class TransformerDecoder(nn.Module):
         print("!!!")
         decoder_params["vocab_size"] = vocab_size
         self.transformer_decoder = TD(**decoder_params)
+        self.n_layer = decoder_params["num_blocks"]
+        self.n_head = decoder_params[attention_heads]
 
     def forward(self, memory, mlens, tokens, tlens):
         # y: logits
         y, _ = self.transformer_decoder(memory, mlens, tokens, tlens)
         return y
+
 
 class HybridCTCNet(nn.Module):
     """Class of the hybrid CTC-Attention model.
@@ -179,6 +193,7 @@ class HybridCTCNet(nn.Module):
         beam_size: The beam size. Only used when beam_search=True.
         max_inference_length: Maximum length until the Transformer decoder stops generating new tokens.
     """
+
     def __init__(
         self,
         conv_stack: ConvStack,
@@ -202,9 +217,13 @@ class HybridCTCNet(nn.Module):
         self.max_inference_length = max_inference_length
         self.ctc_decoder = GreedyCTCDecoder()
         if beam_search:
-            self.ar_decoder = BeamSearchAutoregressiveDecoder(max_inference_length, self.sos_idx, self.eos_idx, beam_size, vocab_size)
+            self.ar_decoder = BeamSearchAutoregressiveDecoder(
+                max_inference_length, self.sos_idx, self.eos_idx, beam_size, vocab_size
+            )
         else:
-            self.ar_decoder = GreedyAutoregressiveDecoder(max_inference_length, self.sos_idx, self.eos_idx)
+            self.ar_decoder = GreedyAutoregressiveDecoder(
+                max_inference_length, self.sos_idx, self.eos_idx
+            )
 
     def forward(
         self,
@@ -220,7 +239,7 @@ class HybridCTCNet(nn.Module):
 
         tokens_wsos = self.add_sos(tokens)
         mask = make_non_pad_mask(token_lens, length_dim=1).to(memory.device)
-        tokens_wsos_woeos = (tokens_wsos[:,:-1] * mask).int()
+        tokens_wsos_woeos = (tokens_wsos[:, :-1] * mask).int()
 
         token_preds_logits = self.transformer_decoder(
             memory, cqt_lens, tokens_wsos_woeos, token_lens
@@ -236,10 +255,9 @@ class HybridCTCNet(nn.Module):
     ):
         memory = self.conv_stack(padded_cqt)
         memory = self.conformer(memory, cqt_lens, tempos)
-
         ctc_preds_logprob = self.ctc_output_layer(memory)
         ctc_preds_tokens = self.ctc_decoder(ctc_preds_logprob, cqt_lens)
-        
+
         preds_tokens = self.ar_decoder(memory, cqt_lens, self.transformer_decoder)
 
         return ctc_preds_tokens, preds_tokens

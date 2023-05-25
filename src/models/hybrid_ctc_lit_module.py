@@ -450,8 +450,8 @@ class HybridCTCLitModule(LightningModule):
         Args:
             track_name_list: List of track names.
         """
-        n_layer = self.model.transformer_decoder.n_layer
-        n_head = self.model.transformer_decoder.n_head
+        n_layer = self.network.transformer_decoder.n_layer
+        n_head = self.network.transformer_decoder.n_head
 
         plot_counter = 1
         for layer_n in range(n_layer):

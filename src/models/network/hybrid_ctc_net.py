@@ -171,7 +171,7 @@ class TransformerDecoder(nn.Module):
         decoder_params["vocab_size"] = vocab_size
         self.transformer_decoder = TD(**decoder_params)
         self.n_layer = decoder_params["num_blocks"]
-        self.n_head = decoder_params[attention_heads]
+        self.n_head = decoder_params["attention_heads"]
 
     def forward(self, memory, mlens, tokens, tlens):
         # y: logits

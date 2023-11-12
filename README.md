@@ -15,7 +15,7 @@ seq2seqGuitarTranscription
 │   ├── paths
 │   ├── tokenizer
 │   ├── trainer
-│   └── train.py
+│   └── train.yaml
 ├── data
 │   └── classic_guitar_midi
 ├── src
